@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カスタム・ポモドーロタイマー | 作業効率化ツール</title>
+    <meta name="description" content="1分間のアイドリングから始まる、ADHD特性に配慮したポモドーロ風タイマーアプリ。">
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Outfit:wght@300;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 背景の輝き演出 -->
+        <div class="glow-bg"></div>
+
+        <header>
+            <h1 id="app-title">ポモドーロ・アイドリング</h1>
+            <div class="status-badge" id="current-status">準備完了</div>
+        </header>
+
+        <main>
+            <div class="timer-section">
+                <!-- 円形ゲージ -->
+                <div class="timer-container">
+                    <svg class="progress-ring" width="300" height="300">
+                        <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="transparent" r="135" cx="150" cy="150"/>
+                        <circle class="progress-ring__circle" stroke="var(--primary-color)" stroke-width="8" stroke-linecap="round" fill="transparent" r="135" cx="150" cy="150"/>
+                    </svg>
+                    <div class="timer-display">
+                        <span id="timer-text">01:00</span>
+                    </div>
+                </div>
+                
+                <p id="status-message">「開始」を押して1分間だけ作業しましょう</p>
+                <!-- 前回の作業・休憩時間の表示用 -->
+                <div id="last-duration-container" class="last-duration hidden">
+                    <span id="last-duration-label">前回:</span>
+                    <span id="last-duration-time">00:00</span>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button id="start-btn" class="btn btn-primary">開始する</button>
+                
+                <!-- 作業中・休憩中のアクション (初期は非表示) -->
+                <div id="action-buttons" class="hidden">
+                    <button id="break-btn" class="btn btn-secondary hidden">休憩へ移行</button>
+                    <button id="resume-btn" class="btn btn-secondary hidden">休憩終了</button>
+                    <button id="continue-btn" class="btn btn-primary hidden">作業を続行</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <button id="settings-btn" class="settings-icon" aria-label="設定">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7-4.22V9.78l-2.01-.33c-.16-.67-.41-1.31-.76-1.9l1.16-1.67-1.44-1.44-1.67 1.16c-.59-.35-1.23-.6-1.9-.76l-.33-2.01h-2.11l-.33 2.01c-.67.16-1.31.41-1.9.76l-1.67-1.16-1.44 1.44 1.16 1.67c-.35.59-.6 1.23-.76 1.9l-2.01.33v2.11l2.01.33c.16.67.41 1.31.76 1.9l-1.16 1.67 1.44 1.44 1.67-1.16c.59.35 1.23.6 1.9.76l.33 2.01h2.11l.33 2.01c.67-.16 1.31-.41 1.9-.76l1.67 1.16 1.44-1.44-1.16-1.67c.35-.59.6-1.23.76-1.9l2.01-.33z"></path>
+                </svg>
+            </button>
+            <div id="settings-panel" class="settings-panel hidden">
+                <h3>設定</h3>
+                <label class="toggle-switch">
+                    <span>通知音</span>
+                    <input type="checkbox" id="sound-toggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
