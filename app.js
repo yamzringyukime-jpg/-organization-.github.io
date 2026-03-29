@@ -39,10 +39,11 @@ const App = {
         statusMsg: document.getElementById('status-message'),
         progressRing: document.querySelector('.progress-ring__circle'),
         
-        // 前回時間の表示
+        // 前回時間と開始時刻の表示
         lastDurationContainer: document.getElementById('last-duration-container'),
         lastDurationLabel: document.getElementById('last-duration-label'),
         lastDurationTime: document.getElementById('last-duration-time'),
+        startTimeBadge: document.getElementById('current-start-time'),
 
         // ボタン類
         startBtn: document.getElementById('start-btn'),
@@ -118,16 +119,11 @@ const App = {
     transitionTo(newState) {
         console.log(`🔄 状態遷移: ${this.state.current} -> ${newState}`);
         
-        // 現在のモードの経過時間を計算して表示用に保存
+        // 現在のモードの経過時間を計算して保存
         if ((this.state.current === this.States.WORKING || this.state.current === this.States.BREAKING) && this.state.startTime) {
             const elapsed = Math.floor((Date.now() - this.state.startTime) / 1000);
             const label = this.state.current === this.States.WORKING ? "前回の作業" : "前回の休憩";
             this.updateLastDuration(label, elapsed);
-        } else {
-            // アイドリングなどはリセットせず、以前の表示を維持するか隠す（今回はREADY時のみ隠す）
-            if (newState === this.States.READY || newState === this.States.IDLING) {
-                this.elements.lastDurationContainer.classList.add('hidden');
-            }
         }
 
         this.stopTimer();
@@ -135,20 +131,31 @@ const App = {
         this.state.current = newState;
         this.state.startTime = Date.now();
 
+        // 開始時刻の表示 (HH:MM)
+        const now = new Date();
+        const startStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        this.elements.startTimeBadge.textContent = `(${startStr} 開始)`;
+
         switch (newState) {
             case this.States.WORKING:
                 this.state.seconds = 0;
                 this.startCountUp();
                 this.elements.statusMsg.textContent = "作業中です。自分のペースで進めましょう。";
+                this.elements.lastDurationContainer.classList.remove('hidden');
                 break;
             case this.States.BREAKING:
                 this.state.seconds = 0;
                 this.startCountUp();
                 this.elements.statusMsg.textContent = "休憩中です。リラックスしてください。";
+                this.elements.lastDurationContainer.classList.remove('hidden');
+                break;
+            case this.States.IDLING:
+                this.elements.lastDurationContainer.classList.remove('hidden');
                 break;
             case this.States.READY:
                 this.state.seconds = this.config.idlingDuration;
                 this.elements.statusMsg.textContent = "「開始」を押して1分間だけ作業しましょう";
+                this.elements.lastDurationContainer.classList.add('hidden');
                 break;
         }
 
@@ -168,34 +175,37 @@ const App = {
         this.elements.lastDurationContainer.classList.remove('hidden');
     },
 
-    /**
-     * アイドリング開始 (1分カウントダウン)
-     */
     startIdling() {
         this.transitionTo('IDLING');
         this.state.seconds = this.config.idlingDuration;
         this.elements.statusMsg.textContent = "1分間だけ、まず手を動かしてみましょう。";
         
+        // 精度向上のため200ms間隔でチェックし、絶対時間と比較して更新
         this.state.timerId = setInterval(() => {
-            this.state.seconds--;
+            const elapsed = Math.floor((Date.now() - this.state.startTime) / 1000);
+            this.state.seconds = this.config.idlingDuration - elapsed;
             
             if (this.state.seconds <= 0) {
+                this.state.seconds = 0;
+                this.updateUI();
                 this.onIdlingComplete();
+                return;
             }
             
             this.updateUI();
-        }, 1000);
+        }, 200);
     },
 
     /**
      * カウントアップ開始 (作業・休憩用)
      */
     startCountUp() {
+        // 精度向上のため200ms間隔でチェック
         this.state.timerId = setInterval(() => {
             const elapsed = Math.floor((Date.now() - this.state.startTime) / 1000);
             this.state.seconds = elapsed;
             this.updateUI();
-        }, 1000);
+        }, 200);
     },
 
     /**
