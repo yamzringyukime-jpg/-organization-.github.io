@@ -17,7 +17,7 @@
         <div class="glow-bg"></div>
 
         <header>
-            <h1 id="app-title">ポモドーロ・アイドリング</h1>
+            <h1 id="app-title">ポモドーロタイマー</h1>
             <div class="status-badge" id="current-status">準備完了</div>
         </header>
 
@@ -25,9 +25,9 @@
             <div class="timer-section">
                 <!-- 円形ゲージ -->
                 <div class="timer-container">
-                    <svg class="progress-ring" width="300" height="300">
-                        <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="transparent" r="135" cx="150" cy="150"/>
-                        <circle class="progress-ring__circle" stroke="var(--primary-color)" stroke-width="8" stroke-linecap="round" fill="transparent" r="135" cx="150" cy="150"/>
+                    <svg class="progress-ring" viewBox="0 0 300 300" width="300" height="300">
+                        <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="transparent" r="132" cx="150" cy="150"/>
+                        <circle class="progress-ring__circle" stroke="var(--primary-color)" stroke-width="8" stroke-linecap="round" fill="transparent" r="132" cx="150" cy="150"/>
                     </svg>
                     <div class="timer-display">
                         <span id="timer-text">01:00</span>
@@ -51,6 +51,7 @@
                     <button id="break-btn" class="btn btn-secondary hidden">休憩へ移行</button>
                     <button id="resume-btn" class="btn btn-secondary hidden">休憩終了</button>
                     <button id="continue-btn" class="btn btn-primary hidden">作業を続行</button>
+                    <button id="finish-btn" class="btn btn-finish hidden">今日の作業終了</button>
                 </div>
             </div>
         </main>

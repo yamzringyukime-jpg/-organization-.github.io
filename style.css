@@ -126,13 +126,14 @@ main {
 
 .timer-container {
     position: relative;
-    width: 280px;
-    height: 280px;
+    width: 300px;
+    height: 300px;
     margin: 0 auto 25px;
 }
 
 .progress-ring {
     transform: rotate(-90deg);
+    overflow: visible;
 }
 
 .progress-ring__circle {
@@ -147,6 +148,10 @@ main {
     left: 50%;
     transform: translate(-50%, -50%);
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 #timer-text {
@@ -200,20 +205,33 @@ main {
     gap: 14px;
     align-items: center;
     margin-bottom: 20px;
+    width: 100%;
+}
+
+#action-buttons {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
 }
 
 .btn {
     font-family: var(--font-body);
     font-size: 0.95rem;
     font-weight: 600;
-    padding: 16px 32px;
+    padding: 16px 28px;
     border-radius: 100px;
     border: none;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    width: 85%;
+    flex: 0 1 auto;
+    min-width: 160px;
     outline: none;
     -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
 }
 
 .btn-primary {
@@ -231,6 +249,10 @@ main {
     transform: translateY(0) scale(0.98);
 }
 
+#start-btn {
+    width: 85%;
+}
+
 .btn-secondary {
     background: rgba(255, 255, 255, 0.08);
     color: white;
@@ -240,6 +262,20 @@ main {
 .btn-secondary:hover {
     background: rgba(255, 255, 255, 0.14);
     transform: translateY(-2px);
+}
+
+.btn-finish {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid transparent;
+    margin-top: 10px;
+    width: 100%;
+    flex-basis: 100%;
+}
+
+.btn-finish:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
 }
 
 .hidden {
@@ -357,17 +393,7 @@ input:checked + .slider::before {
         width: 240px;
         height: 240px;
     }
-    
-    .progress-ring__circle-bg, 
-    .progress-ring__circle {
-        r: 105;
-        cx: 120;
-        cy: 120;
-    }
-
-    .progress-ring__circle {
-        stroke-dasharray: 659.73; /* 2 * PI * 105 */
-    }
+    /* SVG viewBoxにより個別の指定は不要（自動縮小される） */
     
     #timer-text {
         font-size: 3.5rem;

@@ -19,8 +19,8 @@ const App = {
     // アプリケーション設定
     config: {
         idlingDuration: 60, // 1分 (秒)
-        circleRadius: 135,
-        circleCircumference: 2 * Math.PI * 135
+        circleRadius: 132,
+        circleCircumference: 2 * Math.PI * 132
     },
 
     // 現在の状態
@@ -51,6 +51,7 @@ const App = {
         breakBtn: document.getElementById('break-btn'),
         resumeBtn: document.getElementById('resume-btn'),
         continueBtn: document.getElementById('continue-btn'),
+        finishBtn: document.getElementById('finish-btn'),
         
         // 設定
         settingsBtn: document.getElementById('settings-btn'),
@@ -90,6 +91,11 @@ const App = {
 
         this.elements.continueBtn.onclick = () => {
             this.transitionTo('WORKING');
+        };
+
+        this.elements.finishBtn.onclick = () => {
+            console.log("🖱 今日の作業終了ボタンがクリックされました");
+            this.transitionTo('READY');
         };
         
         // 設定パネルのトグル
@@ -258,6 +264,7 @@ const App = {
         this.elements.breakBtn.classList.toggle('hidden', current !== 'WORKING' && current !== 'IDLING');
         this.elements.resumeBtn.classList.toggle('hidden', current !== 'BREAKING');
         this.elements.continueBtn.classList.add('hidden'); 
+        this.elements.finishBtn.classList.toggle('hidden', current === 'READY');
 
         // ゲージの更新
         if (current === 'IDLING') {
