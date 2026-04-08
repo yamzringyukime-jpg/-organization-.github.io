@@ -137,9 +137,9 @@ main {
 }
 
 .progress-ring__circle {
-    transition: stroke-dashoffset 0.3s ease;
+    transition: stroke-dashoffset 0.1s linear;
     filter: drop-shadow(0 0 12px var(--primary-color));
-    stroke-dasharray: 848.23; /* 2 * PI * 135 */
+    stroke-dasharray: 829.38; /* 2 * PI * 132 */
 }
 
 .timer-display {
@@ -186,12 +186,6 @@ main {
     border-radius: 12px;
     margin-top: 5px;
     transition: all 0.3s ease;
-}
-
-.start-time-badge {
-    color: var(--text-dim);
-    font-size: 0.75rem;
-    margin-left: 4px;
 }
 
 .last-duration.hidden {
@@ -265,16 +259,13 @@ main {
 }
 
 .btn-finish {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.05); /* 視認性を少し上げる */
     color: var(--text-dim);
-    border: 1px solid transparent;
-    margin-top: 10px;
-    width: 100%;
-    flex-basis: 100%;
+    border: 1px solid var(--glass-border);
 }
 
 .btn-finish:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.1);
     color: var(--text-main);
 }
 
@@ -339,6 +330,11 @@ footer {
     justify-content: space-between;
     font-size: 0.9rem;
     cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.toggle-switch:last-child {
+    margin-bottom: 0;
 }
 
 .toggle-switch input {

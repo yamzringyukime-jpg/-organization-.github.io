@@ -29,7 +29,9 @@ const App = {
         seconds: 60,
         timerId: null,
         startTime: null,
-        soundEnabled: true
+        soundEnabled: true,
+        csvEnabled: true, // CSV出力設定
+        history: []       // セッション履歴
     },
 
     // DOM要素
@@ -56,13 +58,16 @@ const App = {
         // 設定
         settingsBtn: document.getElementById('settings-btn'),
         settingsPanel: document.getElementById('settings-panel'),
-        soundToggle: document.getElementById('sound-toggle')
+        soundToggle: document.getElementById('sound-toggle'),
+        csvToggle: document.getElementById('csv-toggle')
     },
 
     /**
      * 初期化
      */
     init() {
+        // リングの長さをJSの正確な計算と確実に一致させる
+        this.elements.progressRing.style.strokeDasharray = this.config.circleCircumference;
         this.setupEventListeners();
         this.updateUI();
         this.setProgress(100);
@@ -95,7 +100,7 @@ const App = {
 
         this.elements.finishBtn.onclick = () => {
             console.log("🖱 今日の作業終了ボタンがクリックされました");
-            this.transitionTo('READY');
+            this.finishDay();
         };
         
         // 設定パネルのトグル
@@ -107,6 +112,11 @@ const App = {
         this.elements.soundToggle.onchange = (e) => {
             this.state.soundEnabled = e.target.checked;
             console.log(`🔊 音声通知: ${this.state.soundEnabled ? 'ON' : 'OFF'}`);
+        };
+
+        this.elements.csvToggle.onchange = (e) => {
+            this.state.csvEnabled = e.target.checked;
+            console.log(`📊 CSV出力: ${this.state.csvEnabled ? 'ON' : 'OFF'}`);
         };
 
         // 外部クリックで設定パネルを閉じる
@@ -127,9 +137,21 @@ const App = {
         
         // 現在のモードの経過時間を計算して保存
         if ((this.state.current === this.States.WORKING || this.state.current === this.States.BREAKING) && this.state.startTime) {
-            const elapsed = Math.floor((Date.now() - this.state.startTime) / 1000);
-            const label = this.state.current === this.States.WORKING ? "前回の作業" : "前回の休憩";
-            this.updateLastDuration(label, elapsed);
+            const endTime = Date.now();
+            const elapsed = Math.floor((endTime - this.state.startTime) / 1000);
+            const label = this.state.current === this.States.WORKING ? "作業" : "休憩";
+            
+            // 画面上の前回表示更新
+            this.updateLastDuration(`前回の${label}`, elapsed);
+
+            // 履歴に保存
+            this.state.history.push({
+                mode: label,
+                start: new Date(this.state.startTime),
+                end: new Date(endTime),
+                duration: elapsed
+            });
+            console.log(`📝 履歴に追加: ${label} (${elapsed}s)`);
         }
 
         this.stopTimer();
@@ -137,10 +159,7 @@ const App = {
         this.state.current = newState;
         this.state.startTime = Date.now();
 
-        // 開始時刻の表示 (HH:MM)
-        const now = new Date();
-        const startStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        this.elements.startTimeBadge.textContent = `(${startStr} 開始)`;
+        // 開始時刻のバッジ表示は削除（要望により）
 
         switch (newState) {
             case this.States.WORKING:
@@ -186,9 +205,9 @@ const App = {
         this.state.seconds = this.config.idlingDuration;
         this.elements.statusMsg.textContent = "1分間だけ、まず手を動かしてみましょう。";
         
-        // 精度向上のため200ms間隔でチェックし、絶対時間と比較して更新
+        // 精度向上のため30ms間隔(約33fps)でチェックし、絶対時間と比較して更新
         this.state.timerId = setInterval(() => {
-            const elapsed = Math.floor((Date.now() - this.state.startTime) / 1000);
+            const elapsed = (Date.now() - this.state.startTime) / 1000;
             this.state.seconds = this.config.idlingDuration - elapsed;
             
             if (this.state.seconds <= 0) {
@@ -199,19 +218,19 @@ const App = {
             }
             
             this.updateUI();
-        }, 200);
+        }, 30);
     },
 
     /**
      * カウントアップ開始 (作業・休憩用)
      */
     startCountUp() {
-        // 精度向上のため200ms間隔でチェック
+        // 精度向上のため30ms間隔でチェック
         this.state.timerId = setInterval(() => {
-            const elapsed = Math.floor((Date.now() - this.state.startTime) / 1000);
+            const elapsed = (Date.now() - this.state.startTime) / 1000;
             this.state.seconds = elapsed;
             this.updateUI();
-        }, 200);
+        }, 30);
     },
 
     /**
@@ -222,6 +241,65 @@ const App = {
         this.playSound();
         // ユーザーの指示通り：アイドリング後はそのまま作業モードに移行
         this.transitionTo('WORKING');
+    },
+
+    /**
+     * 今日の作業終了：履歴を保存（必要なら）してリセット
+     */
+    finishDay() {
+        // 現在の作業時間も記録に含める
+        this.transitionTo('READY');
+
+        if (this.state.csvEnabled && this.state.history.length > 0) {
+            this.exportToCSV();
+        }
+
+        // 履歴をクリア
+        this.state.history = [];
+        this.elements.lastDurationContainer.classList.add('hidden');
+        console.log("🏁 今日の作業を終了し履歴をリセットしました");
+    },
+
+    /**
+     * CSV出力処理 (BOM付きUTF-8)
+     */
+    exportToCSV() {
+        const fileName = `pomodoro_history_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.csv`;
+        const header = ["モード", "開始時刻", "終了時刻", "経過時間"];
+        
+        const rows = this.state.history.map(item => {
+            const formatTime = (d) => `${d.getFullYear()}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
+            const formatDuration = (s) => {
+                const m = Math.floor(s / 60);
+                const rs = s % 60;
+                return `${m.toString().padStart(2,'0')}:${rs.toString().padStart(2,'0')}`;
+            };
+            return [
+                item.mode,
+                formatTime(item.start),
+                formatTime(item.end),
+                formatDuration(item.duration)
+            ].join(",");
+        });
+
+        const csvContent = "\uFEFF" + [header.join(","), ...rows].join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        
+        if (navigator.msSaveBlob) { // IE 10+
+            navigator.msSaveBlob(blob, fileName);
+        } else {
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = fileName;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // メモリ解放のため少し待ってからrevoke
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        }
     },
 
     /**
@@ -240,9 +318,11 @@ const App = {
     updateUI() {
         const { current, seconds } = this.state;
         
-        // タイマー文字列の表示 (MM:SS)
-        const mins = Math.floor(Math.abs(seconds) / 60);
-        const secs = Math.abs(seconds) % 60;
+        // タイマー文字列の表示 (MM:SS) 
+        // (カウントダウン時は切り上げを使うことで、表示されている秒数とゲージの描画位置を感覚的にシンクロさせる)
+        const displaySecs = current === 'IDLING' ? Math.ceil(seconds) : Math.floor(Math.abs(seconds));
+        const mins = Math.floor(displaySecs / 60);
+        const secs = displaySecs % 60;
         this.elements.timerText.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
         // 状態バッジの表示
@@ -285,7 +365,7 @@ const App = {
 
     /**
      * 通知音の生成 (Web Audio API)
-     * 複数のオシレーターを重ねて深みのある音に
+     * やる気が出る上昇アルペジオ (C5 -> E5 -> G5)
      */
     playSound() {
         if (!this.state.soundEnabled) return;
@@ -293,28 +373,32 @@ const App = {
         try {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             
-            // 2つの音（和音）を作成
-            const frequencies = [880, 1109]; // A5, C#6 (明るい和音)
+            // 3つの音（アルペジオ）
+            const notes = [
+                { freq: 523.25, time: 0 },    // C5
+                { freq: 659.25, time: 0.15 }, // E5
+                { freq: 783.99, time: 0.3 }   // G5
+            ];
             
-            frequencies.forEach(freq => {
+            notes.forEach(note => {
                 const oscillator = audioCtx.createOscillator();
                 const gainNode = audioCtx.createGain();
 
                 oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(freq / 2, audioCtx.currentTime + 0.8);
+                oscillator.frequency.setValueAtTime(note.freq, audioCtx.currentTime + note.time);
 
-                gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime + note.time);
+                gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + note.time + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + note.time + 0.4);
 
                 oscillator.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
 
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.8);
+                oscillator.start(audioCtx.currentTime + note.time);
+                oscillator.stop(audioCtx.currentTime + note.time + 0.5);
             });
             
-            console.log("🔊 プレミアム・チャイムを再生しました");
+            console.log("🔊 やる気チャイム（上昇アルペジオ）を再生しました");
         } catch (e) {
             console.error("サウンド再生に失敗しました:", e);
         }
