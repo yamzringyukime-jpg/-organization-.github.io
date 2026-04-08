@@ -22,6 +22,18 @@
         </header>
 
         <main>
+            <!-- タスク入力セクション -->
+            <div class="task-section">
+                <div class="task-input-wrapper" id="task-input-wrapper">
+                    <input type="text" id="task-input" placeholder="何を作業しますか？" autocomplete="off">
+                    <svg class="task-input-arrow" id="task-arrow" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M7 10l5 5 5-5z"></path>
+                    </svg>
+                    <!-- カスタムサジェストドロップダウン -->
+                    <ul id="task-dropdown" class="task-dropdown hidden"></ul>
+                </div>
+            </div>
+
             <div class="timer-section">
                 <!-- 円形ゲージ -->
                 <div class="timer-container">
@@ -70,9 +82,16 @@
                 </label>
                 <label class="toggle-switch">
                     <span>CSV出力</span>
-                    <input type="checkbox" id="csv-toggle" checked>
+                    <input type="checkbox" id="csv-toggle">
                     <span class="slider"></span>
                 </label>
+
+                <div class="settings-divider"></div>
+                
+                <h4>タスク名の管理</h4>
+                <ul id="task-manage-list" class="task-manage-list">
+                    <!-- 保存されたタスクがここに動的に生成される -->
+                </ul>
             </div>
         </footer>
     </div>

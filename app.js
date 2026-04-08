@@ -30,7 +30,8 @@ const App = {
         timerId: null,
         startTime: null,
         soundEnabled: true,
-        csvEnabled: true, // CSV出力設定
+        csvEnabled: false, // CSV出力設定 (初期OFF)
+        taskSuggestions: [], // サジェスト用のタスク名リスト
         history: []       // セッション履歴
     },
 
@@ -59,19 +60,32 @@ const App = {
         settingsBtn: document.getElementById('settings-btn'),
         settingsPanel: document.getElementById('settings-panel'),
         soundToggle: document.getElementById('sound-toggle'),
-        csvToggle: document.getElementById('csv-toggle')
+        csvToggle: document.getElementById('csv-toggle'),
+        
+        // タスク関連
+        taskInput: document.getElementById('task-input'),
+        taskInputContainer: document.getElementById('task-input-wrapper'),
+        taskArrow: document.getElementById('task-arrow'),
+        taskDropdown: document.getElementById('task-dropdown'),
+        taskManageList: document.getElementById('task-manage-list')
     },
 
     /**
      * 初期化
      */
     init() {
+        this.loadSettings();
+        // UIに初期値を反映
+        this.elements.soundToggle.checked = this.state.soundEnabled;
+        this.elements.csvToggle.checked = this.state.csvEnabled;
+
         // リングの長さをJSの正確な計算と確実に一致させる
         this.elements.progressRing.style.strokeDasharray = this.config.circleCircumference;
         this.setupEventListeners();
         this.updateUI();
+        this.updateTaskSuggestionsUI();
         this.setProgress(100);
-        console.log("🛠 ポモドーロ・アイドリング 初期化完了 - V1.2");
+        console.log("🛠 ポモドーロ・アイドリング 初期化完了 - V1.3 (Task Management)");
     },
 
     /**
@@ -111,22 +125,85 @@ const App = {
 
         this.elements.soundToggle.onchange = (e) => {
             this.state.soundEnabled = e.target.checked;
+            this.saveSettings();
             console.log(`🔊 音声通知: ${this.state.soundEnabled ? 'ON' : 'OFF'}`);
         };
 
         this.elements.csvToggle.onchange = (e) => {
             this.state.csvEnabled = e.target.checked;
+            this.saveSettings();
             console.log(`📊 CSV出力: ${this.state.csvEnabled ? 'ON' : 'OFF'}`);
         };
 
-        // 外部クリックで設定パネルを閉じる
-        document.addEventListener('click', (e) => {
+        // 外部クリックで各種パネルを閉じる
+        document.addEventListener('mousedown', (e) => {
             if (!this.elements.settingsPanel.classList.contains('hidden')) {
-                if (!this.elements.settingsPanel.contains(e.target)) {
+                if (!this.elements.settingsPanel.contains(e.target) && e.target !== this.elements.settingsBtn) {
                     this.elements.settingsPanel.classList.add('hidden');
                 }
             }
+            if (!this.elements.taskDropdown.classList.contains('hidden')) {
+                if (!this.elements.taskInputContainer.contains(e.target)) {
+                    closeDropdown();
+                }
+            }
         });
+
+        // カスタムドロップダウンの制御
+        const showDropdown = (filterText = null) => {
+            if (this.state.current !== 'READY') return;
+            const dd = this.elements.taskDropdown;
+            dd.innerHTML = '';
+            
+            const items = filterText 
+                ? this.state.taskSuggestions.filter(s => s.toLowerCase().includes(filterText.toLowerCase()))
+                : this.state.taskSuggestions;
+
+            if (items.length === 0) {
+                dd.innerHTML = '<li class="task-dropdown-empty">履歴がありません</li>';
+            } else {
+                items.forEach(task => {
+                    const li = document.createElement('li');
+                    li.textContent = task;
+                    li.onmousedown = (e) => {
+                        // blurを回避するためにpreventDefault
+                        e.preventDefault(); 
+                        this.elements.taskInput.value = task;
+                        closeDropdown();
+                    };
+                    dd.appendChild(li);
+                });
+            }
+            dd.classList.remove('hidden');
+        };
+
+        const closeDropdown = () => {
+            this.elements.taskDropdown.classList.add('hidden');
+        };
+
+        let skipFocusFilter = false;
+
+        this.elements.taskInput.onfocus = () => {
+            if (this.state.current !== 'READY' || skipFocusFilter) return;
+            showDropdown(this.elements.taskInput.value);
+        };
+        
+        this.elements.taskInput.oninput = () => showDropdown(this.elements.taskInput.value);
+        this.elements.taskInput.onblur = closeDropdown;
+
+        // カスタム矢印でのトグルと全件展開（フィルタ回避）
+        this.elements.taskArrow.onmousedown = (e) => e.preventDefault(); // focus移動を防ぐ
+        this.elements.taskArrow.onclick = () => {
+            if (this.state.current !== 'READY') return;
+            if (!this.elements.taskDropdown.classList.contains('hidden')) {
+                closeDropdown();
+                return;
+            }
+            skipFocusFilter = true;
+            this.elements.taskInput.focus();
+            showDropdown(null);
+            setTimeout(() => skipFocusFilter = false, 50);
+        };
     },
 
     /**
@@ -141,17 +218,27 @@ const App = {
             const elapsed = Math.floor((endTime - this.state.startTime) / 1000);
             const label = this.state.current === this.States.WORKING ? "作業" : "休憩";
             
+            // 現在のタスク名を取得（休憩の場合は直前の作業名を引き継ぐか空にする）
+            const taskName = this.elements.taskInput.value.trim() || "(名称未設定)";
+
             // 画面上の前回表示更新
             this.updateLastDuration(`前回の${label}`, elapsed);
 
             // 履歴に保存
             this.state.history.push({
+                task: label === "作業" ? taskName : (taskName === "(名称未設定)" ? "休憩中" : `${taskName}の休憩`),
                 mode: label,
                 start: new Date(this.state.startTime),
                 end: new Date(endTime),
                 duration: elapsed
             });
-            console.log(`📝 履歴に追加: ${label} (${elapsed}s)`);
+            
+            // 作業開始時かつ新しいタスク名ならサジェストに追加
+            if (label === "作業" && taskName !== "(名称未設定)") {
+                this.addTaskSuggestion(taskName);
+            }
+
+            console.log(`📝 履歴に追加: ${label} [${taskName}] (${elapsed}s)`);
         }
 
         this.stopTimer();
@@ -265,7 +352,7 @@ const App = {
      */
     exportToCSV() {
         const fileName = `pomodoro_history_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.csv`;
-        const header = ["モード", "開始時刻", "終了時刻", "経過時間"];
+        const header = ["作業内容", "モード", "開始時刻", "終了時刻", "経過時間"];
         
         const rows = this.state.history.map(item => {
             const formatTime = (d) => `${d.getFullYear()}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
@@ -275,6 +362,7 @@ const App = {
                 return `${m.toString().padStart(2,'0')}:${rs.toString().padStart(2,'0')}`;
             };
             return [
+                `"${item.task || ''}"`, // カンマ等が含まれる可能性を考慮
                 item.mode,
                 formatTime(item.start),
                 formatTime(item.end),
@@ -346,6 +434,9 @@ const App = {
         this.elements.continueBtn.classList.add('hidden'); 
         this.elements.finishBtn.classList.toggle('hidden', current === 'READY');
 
+        // タスク入力の有効/無効の切り替え（実行中は編集不可に固定）
+        this.elements.taskInput.disabled = current !== 'READY';
+
         // ゲージの更新
         if (current === 'IDLING') {
             const percent = (seconds / this.config.idlingDuration) * 100;
@@ -402,6 +493,95 @@ const App = {
         } catch (e) {
             console.error("サウンド再生に失敗しました:", e);
         }
+    },
+
+    /**
+     * ローカルストレージに設定を保存
+     */
+    saveSettings() {
+        localStorage.setItem('pomodoro_tasks', JSON.stringify(this.state.taskSuggestions));
+        localStorage.setItem('pomodoro_sound', JSON.stringify(this.state.soundEnabled));
+        localStorage.setItem('pomodoro_csv', JSON.stringify(this.state.csvEnabled));
+    },
+
+    /**
+     * ローカルストレージから設定を読み込み
+     */
+    loadSettings() {
+        const savedTasks = localStorage.getItem('pomodoro_tasks');
+        if (savedTasks) {
+            try {
+                this.state.taskSuggestions = JSON.parse(savedTasks);
+            } catch(e) {
+                console.error('タスク履歴の読み込みに失敗しました', e);
+            }
+        }
+
+        const savedSound = localStorage.getItem('pomodoro_sound');
+        if (savedSound !== null) {
+            try {
+                this.state.soundEnabled = JSON.parse(savedSound);
+            } catch(e) {}
+        }
+
+        const savedCsv = localStorage.getItem('pomodoro_csv');
+        if (savedCsv !== null) {
+            try {
+                this.state.csvEnabled = JSON.parse(savedCsv);
+            } catch(e) {}
+        }
+    },
+
+    /**
+     * タスクサジェストのUI更新 (管理リストのみ更新)
+     */
+    updateTaskSuggestionsUI() {
+        // 設定パネル内の管理リストの更新
+        this.elements.taskManageList.innerHTML = '';
+        if (this.state.taskSuggestions.length === 0) {
+            this.elements.taskManageList.innerHTML = '<li class="task-item" style="color:var(--text-dim); font-size:0.75rem;">履歴はありません</li>';
+            return;
+        }
+
+        this.state.taskSuggestions.forEach(task => {
+            const li = document.createElement('li');
+            li.className = 'task-item';
+            li.innerHTML = `
+                <span class="task-name">${task}</span>
+                <button class="task-delete-btn" aria-label="削除">×</button>
+            `;
+            
+            // 削除ボタンのイベント
+            li.querySelector('.task-delete-btn').onclick = () => {
+                this.removeTaskSuggestion(task);
+            };
+            
+            this.elements.taskManageList.appendChild(li);
+        });
+    },
+
+    /**
+     * タスク名の新規追加
+     */
+    addTaskSuggestion(name) {
+        if (!this.state.taskSuggestions.includes(name)) {
+            this.state.taskSuggestions.unshift(name); // 先頭に追加
+            // 最大件数を制限（例：30件）
+            if (this.state.taskSuggestions.length > 30) {
+                this.state.taskSuggestions.pop();
+            }
+            this.saveSettings();
+            this.updateTaskSuggestionsUI();
+        }
+    },
+
+    /**
+     * タスク名の個別削除
+     */
+    removeTaskSuggestion(name) {
+        this.state.taskSuggestions = this.state.taskSuggestions.filter(t => t !== name);
+        this.saveSettings();
+        this.updateTaskSuggestionsUI();
     }
 };
 
