@@ -499,6 +499,41 @@ footer {
     opacity: 1;
 }
 
+.settings-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.btn-settings-action {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    font-family: var(--font-body);
+}
+
+.btn-settings-action:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--primary-color);
+}
+
+.btn-settings-action.btn-danger {
+    color: var(--text-dim);
+}
+
+.btn-settings-action.btn-danger:hover {
+    background: rgba(255, 106, 149, 0.15);
+    border-color: var(--accent-color);
+    color: var(--text-main);
+}
+
 .toggle-switch {
     display: flex;
     align-items: center;

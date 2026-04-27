@@ -61,6 +61,8 @@ const App = {
         settingsPanel: document.getElementById('settings-panel'),
         soundToggle: document.getElementById('sound-toggle'),
         csvToggle: document.getElementById('csv-toggle'),
+        downloadCsvBtn: document.getElementById('download-csv-btn'),
+        resetHistoryBtn: document.getElementById('reset-history-btn'),
         
         // タスク関連
         taskInput: document.getElementById('task-input'),
@@ -133,6 +135,23 @@ const App = {
             this.state.csvEnabled = e.target.checked;
             this.saveSettings();
             console.log(`📊 CSV出力: ${this.state.csvEnabled ? 'ON' : 'OFF'}`);
+        };
+
+        this.elements.downloadCsvBtn.onclick = () => {
+            if (this.state.history.length === 0) {
+                alert("保存する履歴がありません。");
+                return;
+            }
+            this.exportToCSV();
+        };
+
+        this.elements.resetHistoryBtn.onclick = () => {
+            if (this.state.history.length === 0) return;
+            if (confirm("これまでの作業履歴をリセットしますか？\n（ダウンロードしていない履歴は消去されます）")) {
+                this.state.history = [];
+                console.log("🗑 履歴をリセットしました");
+                alert("履歴をリセットしました。");
+            }
         };
 
         // 外部クリックで各種パネルを閉じる
@@ -341,10 +360,9 @@ const App = {
             this.exportToCSV();
         }
 
-        // 履歴をクリア
-        this.state.history = [];
+        // 履歴をクリアしない (ユーザーが手動でリセットするかダウンロードするまで保持)
         this.elements.lastDurationContainer.classList.add('hidden');
-        console.log("🏁 今日の作業を終了し履歴をリセットしました");
+        console.log("🏁 今日の作業を終了しました（履歴は保持されています）");
     },
 
     /**
