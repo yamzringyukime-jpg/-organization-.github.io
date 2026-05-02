@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カスタム・ポモドーロタイマー | 作業効率化ツール</title>
+    <meta name="description" content="1分間のアイドリングから始まる、ADHD特性に配慮したポモドーロ風タイマーアプリ。">
+    <link rel="stylesheet" href="style.css?v=1.1">
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Outfit:wght@300;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 背景の輝き演出 -->
+        <div class="glow-bg"></div>
+
+        <header>
+            <h1 id="app-title">ポモドーロタイマー</h1>
+            <div class="status-badge" id="current-status">準備完了</div>
+        </header>
+
+        <main>
+            <!-- タスク入力セクション -->
+            <div class="task-section">
+                <div class="task-input-wrapper" id="task-input-wrapper">
+                    <input type="text" id="task-input" placeholder="何を作業しますか？" autocomplete="off">
+                    <svg class="task-input-arrow" id="task-arrow" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M7 10l5 5 5-5z"></path>
+                    </svg>
+                    <!-- カスタムサジェストドロップダウン -->
+                    <ul id="task-dropdown" class="task-dropdown hidden"></ul>
+                </div>
+            </div>
+
+            <div class="timer-section">
+                <!-- 円形ゲージ -->
+                <div class="timer-container">
+                    <svg class="progress-ring" viewBox="0 0 300 300" width="300" height="300">
+                        <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="transparent" r="132" cx="150" cy="150"/>
+                        <circle class="progress-ring__circle" stroke="var(--primary-color)" stroke-width="8" stroke-linecap="round" fill="transparent" r="132" cx="150" cy="150"/>
+                    </svg>
+                    <div class="timer-display">
+                        <span id="timer-text">01:00</span>
+                    </div>
+                </div>
+                
+                <p id="status-message">「開始」を押して1分間だけ作業しましょう</p>
+                <!-- 前回の作業・休憩時間の表示用 -->
+                <div id="last-duration-container" class="last-duration hidden">
+                    <span id="last-duration-label">前回:</span>
+                    <span id="last-duration-time">00:00</span>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button id="start-btn" class="btn btn-primary">開始する</button>
+                
+                <!-- 作業中・休憩中のアクション (初期は非表示) -->
+                <div id="action-buttons" class="hidden">
+                    <button id="break-btn" class="btn btn-secondary hidden">休憩へ移行</button>
+                    <button id="resume-btn" class="btn btn-secondary hidden">休憩終了</button>
+                    <button id="continue-btn" class="btn btn-primary hidden">作業を続行</button>
+                    <button id="finish-btn" class="btn btn-finish hidden">今日の作業終了</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <button id="settings-btn" class="settings-icon" aria-label="設定">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.84,9.48l2.03,1.58C4.82,11.36,4.8,11.68,4.8,12c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.5c-1.93,0-3.5-1.57-3.5-3.5 s1.57-3.5,3.5-3.5s3.5,1.57,3.5,3.5S13.93,15.5,12,15.5z"></path>
+                </svg>
+            </button>
+            <div id="settings-panel" class="settings-panel hidden">
+                <h3>設定</h3>
+                <label class="toggle-switch">
+                    <span>通知音</span>
+                    <input type="checkbox" id="sound-toggle" checked>
+                    <span class="slider"></span>
+                </label>
+                <label class="toggle-switch">
+                    <span>CSV出力</span>
+                    <input type="checkbox" id="csv-toggle">
+                    <span class="slider"></span>
+                </label>
+                <label class="toggle-switch">
+                    <span>軽量モード</span>
+                    <input type="checkbox" id="performance-toggle">
+                    <span class="slider"></span>
+                </label>
+
+                <div class="settings-divider"></div>
+                
+                <h4>データ管理</h4>
+                <div class="settings-actions">
+                    <button id="download-csv-btn" class="btn-settings-action">CSVをダウンロード</button>
+                    <button id="reset-history-btn" class="btn-settings-action btn-danger">履歴をリセット</button>
+                </div>
+
+                <div class="settings-divider"></div>
+                
+                <h4>タスク名の管理</h4>
+                <ul id="task-manage-list" class="task-manage-list">
+                    <!-- 保存されたタスクがここに動的に生成される -->
+                </ul>
+            </div>
+        </footer>
+    </div>
+
+    <script src="app.js?v=1.1"></script>
+</body>
+</html>
