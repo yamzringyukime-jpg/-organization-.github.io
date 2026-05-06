@@ -610,32 +610,41 @@ input:checked + .slider::before {
 
 /* 軽量モード（パフォーマンス優先） */
 body.performance-mode {
-    --glass-bg: rgba(20, 22, 28, 0.95); /* 透過を抑え、ぼかし無しでも視認性を確保 */
+    --glass-bg: rgba(20, 22, 28, 0.98); /* 透過をほぼ無くす */
+}
+
+/* アニメーションとトランジションの完全停止 */
+body.performance-mode * {
+    transition: none;
+    animation: none;
 }
 
 body.performance-mode .app-container {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 body.performance-mode .glow-bg {
-    display: none !important;
+    display: none;
 }
 
-body.performance-mode .progress-ring__circle {
-    filter: none !important;
-    transition: none !important; /* 描画負荷を最小限に */
+/* 進捗リングの完全非表示化 */
+body.performance-mode .timer-container svg {
+    display: none;
 }
 
 body.performance-mode .task-dropdown,
 body.performance-mode .settings-panel {
-    backdrop-filter: none !important;
+    backdrop-filter: none;
     background: #191b22;
+    box-shadow: none;
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 body.performance-mode .status-badge.active,
 body.performance-mode .status-badge.rest {
-    box-shadow: none !important;
+    box-shadow: none;
 }
 

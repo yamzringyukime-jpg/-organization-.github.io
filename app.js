@@ -444,38 +444,50 @@ const App = {
         const displaySecs = current === 'IDLING' ? Math.ceil(seconds) : Math.floor(Math.abs(seconds));
         const mins = Math.floor(displaySecs / 60);
         const secs = displaySecs % 60;
-        this.elements.timerText.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-
-        // 状態バッジの表示
-        this.elements.statusBox.classList.remove('active', 'rest');
-        if (current === 'WORKING' || current === 'IDLING') {
-            this.elements.statusBox.textContent = current === 'IDLING' ? 'アイドリング中' : '作業中';
-            this.elements.statusBox.classList.add('active');
-        } else if (current === 'BREAKING') {
-            this.elements.statusBox.textContent = '休憩中';
-            this.elements.statusBox.classList.add('rest');
-        } else {
-            this.elements.statusBox.textContent = '準備完了';
+        const newTimeText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        
+        // 画面の書き換え（DOM操作）は描画負荷が高いため、表示が変わる瞬間のみ実行する
+        if (this.elements.timerText.textContent !== newTimeText) {
+            this.elements.timerText.textContent = newTimeText;
         }
 
-        // ボタンの表示切り替え
-        this.elements.startBtn.classList.toggle('hidden', current !== 'READY');
-        this.elements.actionBtns.classList.toggle('hidden', current === 'READY');
-        
-        this.elements.breakBtn.classList.toggle('hidden', current !== 'WORKING' && current !== 'IDLING');
-        this.elements.resumeBtn.classList.toggle('hidden', current !== 'BREAKING');
-        this.elements.continueBtn.classList.add('hidden'); 
-        this.elements.finishBtn.classList.toggle('hidden', current === 'READY');
+        // 状態バッジとボタンの更新（状態が変わった時のみ実行）
+        if (this._lastProcessedState !== current) {
+            this._lastProcessedState = current;
 
-        // タスク入力の有効/無効の切り替え（実行中は編集不可に固定）
-        this.elements.taskInput.disabled = current !== 'READY';
+            // 状態バッジの表示
+            this.elements.statusBox.classList.remove('active', 'rest');
+            if (current === 'WORKING' || current === 'IDLING') {
+                this.elements.statusBox.textContent = current === 'IDLING' ? 'アイドリング中' : '作業中';
+                this.elements.statusBox.classList.add('active');
+            } else if (current === 'BREAKING') {
+                this.elements.statusBox.textContent = '休憩中';
+                this.elements.statusBox.classList.add('rest');
+            } else {
+                this.elements.statusBox.textContent = '準備完了';
+            }
 
-        // ゲージの更新
-        if (current === 'IDLING') {
-            const percent = (seconds / this.config.idlingDuration) * 100;
-            this.setProgress(percent);
-        } else {
-            this.setProgress(100);
+            // ボタンの表示切り替え
+            this.elements.startBtn.classList.toggle('hidden', current !== 'READY');
+            this.elements.actionBtns.classList.toggle('hidden', current === 'READY');
+            
+            this.elements.breakBtn.classList.toggle('hidden', current !== 'WORKING' && current !== 'IDLING');
+            this.elements.resumeBtn.classList.toggle('hidden', current !== 'BREAKING');
+            this.elements.continueBtn.classList.add('hidden'); 
+            this.elements.finishBtn.classList.toggle('hidden', current === 'READY');
+
+            // タスク入力の有効/無効の切り替え（実行中は編集不可に固定）
+            this.elements.taskInput.disabled = current !== 'READY';
+        }
+
+        // ゲージの更新 (軽量モード時は非表示にするため更新処理自体をスキップ)
+        if (!this.state.performanceMode) {
+            if (current === 'IDLING') {
+                const percent = (seconds / this.config.idlingDuration) * 100;
+                this.setProgress(percent);
+            } else {
+                this.setProgress(100);
+            }
         }
     },
 
